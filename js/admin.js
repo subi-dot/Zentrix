@@ -345,9 +345,6 @@ function renderAdminOrderPage() {
         }
         const ord = doc.data();
         ord.id = ord.id || doc.id;
-        contentArea.innerHTML = '<p class="neon-text text-center">Error: Order record not found in the matrix.</p>';
-        return;
-    }
 
     // Show controls now that we have a valid order
     const controls = document.getElementById('orderControlsWrapper');
@@ -398,7 +395,6 @@ function renderAdminOrderPage() {
     }
 
     contentArea.innerHTML = itemsHtml;
-    
     }).catch(err => {
         console.error("Error fetching order:", err);
         contentArea.innerHTML = '<p class="neon-text text-center">Matrix disconnection: Failed to load order details.</p>';
