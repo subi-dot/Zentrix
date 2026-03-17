@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop | Zentrix Designs</title>
+    <meta name="description" content="Shop high-end, satisfying 3D printed gadgets and custom keychains from Zentrix Designs.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar scrolled" style="background: rgba(10, 15, 25, 0.95);">
+        <div class="logo">
+            <a href="index.html">
+                <span class="neon-text">ZENTRIX</span> <span class="light-text">DESIGNS</span>
+            </a>
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html#home">Home</a></li>
+            <li><a href="shop.html" style="color: var(--neon-blue);">Shop</a></li>
+            <li><a href="index.html#global-designers">Global Designers</a></li>
+        </ul>
+        <div class="nav-actions">
+            <button id="loginBtn" class="action-btn"><i class="fa-regular fa-user"></i> Login</button>
+            <button id="cartBtn" class="action-btn">
+                <i class="fa-solid fa-cart-shopping"></i> 
+                <span id="cartCount" class="badge">0</span>
+            </button>
+        </div>
+        <div class="mobile-menu-toggle">
+            <i class="fa-solid fa-bars"></i>
+        </div>
+    </nav>
+
+    <!-- Auth Modal (Login & Signup) -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 500px;">
+            <span class="close-btn login-close">&times;</span>
+            <div id="loginSection">
+                <h2>Access Portal <i class="fa-solid fa-fingerprint glow-icon"></i></h2>
+                <form id="loginForm">
+                    <div class="input-group">
+                        <label>Email ID</label>
+                        <input type="email" id="loginEmail" placeholder="user@zentrix.net" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Passcode</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="cyber-btn primary-btn w-100">Authenticate</button>
+                    <p class="form-footer">New user? <a href="#" id="showSignupBtn" class="accent-link">Initialize Account</a></p>
+                    <p class="admin-link"><a href="admin.html" class="accent-link">>> Admin Override</a></p>
+                </form>
+            </div>
+
+            <div id="signupSection" style="display: none;">
+                <h2>Initialize Account <i class="fa-solid fa-user-plus glow-icon"></i></h2>
+                <form id="signupForm">
+                    <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
+                        <div class="input-group" style="margin-bottom: 0; flex: 1;">
+                            <label>First Name</label>
+                            <input type="text" id="signupFirstName" placeholder="Neo" required>
+                        </div>
+                        <div class="input-group" style="margin-bottom: 0; flex: 1;">
+                            <label>Last Name</label>
+                            <input type="text" id="signupLastName" placeholder="Anderson" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Email ID (Required)</label>
+                        <input type="email" id="signupEmail" placeholder="user@domain.com" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Date of Birth</label>
+                        <input type="date" id="signupDOB" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Primary Shipping Address</label>
+                        <input type="text" id="signupAddress" placeholder="123 Neon Sector, City" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Passcode (Min 8 Chars)</label>
+                        <input type="password" id="signupPassword" minlength="8" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="cyber-btn primary-btn w-100">Transmit Data</button>
+                    <p class="form-footer">Existing user? <a href="#" id="showLoginBtn" class="accent-link">Return to Portal</a></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile & Orders Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 600px;">
+            <span class="close-btn profile-close">&times;</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2 style="margin: 0;">User Nexus <i class="fa-solid fa-user-astronaut glow-icon"></i></h2>
+                <button id="logoutBtn" class="cyber-btn outline-btn" style="padding: 0.5rem 1rem; border-color: #ff3366; color: #ff3366;">Jettison (Logout)</button>
+            </div>
+            
+            <h3 class="orbitron neon-text mb-2">My Transmissions (Orders)</h3>
+            <div id="userOrdersContainer" style="max-height: 300px; overflow-y: auto; padding-right: 10px;">
+                <!-- User orders injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Verification Modal -->
+    <div id="verifyModal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 400px; text-align: center;">
+            <span class="close-btn verify-close">&times;</span>
+            <h2 class="neon-text">Verify Identity</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem; font-size: 0.9rem;">A transmission containing a 4-digit code has been sent to your email.</p>
+            <form id="verifyForm">
+                <div class="input-group">
+                    <input type="text" id="verifyCode" maxlength="4" placeholder="XXXX" style="text-align: center; font-size: 2rem; letter-spacing: 10px;" required>
+                </div>
+                <button type="submit" class="cyber-btn primary-btn w-100">Confirm Code</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cart Slide-out -->
+    <div id="cartDrawer" class="drawer">
+        <div class="drawer-header">
+            <h2>Your Cargo</h2>
+            <span class="close-btn cart-close">&times;</span>
+        </div>
+        <div class="drawer-content" id="cartItemsContainer">
+            <!-- Cart items injected here -->
+            <p class="empty-cart-msg">Cargo hold is empty.</p>
+        </div>
+        <div class="drawer-footer">
+            <div id="checkoutInfo" style="display: none; font-size: 0.85rem; margin-bottom: 1.5rem; color: var(--text-secondary); background: rgba(0,0,0,0.4); padding: 1rem; border-radius: 4px; border: 1px solid var(--border-subtle);">
+                <div style="margin-bottom: 0.5rem;"><strong style="color: var(--text-primary);"><i class="fa-solid fa-location-dot"></i> Shipping to:</strong> <span id="cartAddressText">...</span></div>
+                <div><strong style="color: var(--text-primary);"><i class="fa-solid fa-wallet"></i> Payment Method:</strong> <span class="neon-text">CASH</span></div>
+            </div>
+            <div class="total-row">
+                <span>Total:</span>
+                <span id="cartTotalPrice" class="neon-text">₹0.00</span>
+            </div>
+            <div style="margin-bottom: 1rem; font-size: 0.85rem; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="tncCheckbox" style="accent-color: var(--neon-blue); width: 16px; height: 16px;">
+                <label for="tncCheckbox" style="color: var(--text-secondary);">I agree to the <a href="terms.html" class="accent-link" target="_blank">Terms & Conditions</a></label>
+            </div>
+            <button class="cyber-btn w-100 checkout-btn" id="mainCheckoutBtn">Confirm Order</button>
+            <p style="text-align: center; font-size: 0.75rem; color: #8892b0; margin-top: 1rem;">* UPI will be available soon</p>
+        </div>
+    </div>
+    <div id="drawerOverlay" class="overlay"></div>
+
+    <!-- Hero Removed from Shop Page -->
+
+    <!-- Product Detail Section -->
+    <section id="product-detail-section" class="section-padding" style="margin-top: 80px; min-height: 80vh;">
+        <div class="container" id="productDetailContainer">
+            <!-- Product details injected here -->
+            <div style="text-align: center; color: var(--text-secondary);">Loading Blueprint...</div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="index.html" class="logo">
+                        <span class="neon-text">ZENTRIX</span> <span class="light-text">DESIGNS</span>
+                    </a>
+                    <p class="mt-1">Micro-manufacturing the future. High-end 3D printed tech-wear and tactile gadgets.</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Navigation</h4>
+                    <ul>
+                        <li><a href="index.html#home">Home Base</a></li>
+                        <li><a href="shop.html">Repository</a></li>
+                        <li><a href="index.html#global-designers">Architects</a></li>
+                        <li><a href="#">Contact Nexus</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Comm Link</h4>
+                    <div class="social-icons">
+                        <a href="#"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="#"><i class="fa-brands fa-x-twitter"></i></a>
+                        <a href="#"><i class="fa-brands fa-discord"></i></a>
+                    </div>
+                </div>
+                <div class="footer-newsletter">
+                    <h4>Network Updates</h4>
+                    <form class="newsletter-form">
+                        <input type="email" placeholder="email@domain.com" required>
+                        <button type="submit"><i class="fa-solid fa-arrow-right"></i></button>
+                    </form>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Zentrix Designs. All systems nominal. | <a href="terms.html">Terms of Service</a> | <a href="privacy.html">Privacy Protocol</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

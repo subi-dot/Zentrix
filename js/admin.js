@@ -108,6 +108,7 @@ if(productForm) {
         const price = document.getElementById('prodPrice').value;
         let image = document.getElementById('prodImage').value;
         const designer = document.getElementById('prodDesigner').value;
+        let customizationPrompt = document.getElementById('prodCustomPrompt') ? document.getElementById('prodCustomPrompt').value : '';
 
         // Auto fallback if user is lazy
         if (!image) {
@@ -118,12 +119,12 @@ if(productForm) {
             // Edit
             const idx = adminProducts.findIndex(p => p.id == idVal);
             if(idx > -1) {
-                adminProducts[idx] = { id: Number(idVal), name, category, price, image, designer };
+                adminProducts[idx] = { id: Number(idVal), name, category, price, image, designer, customizationPrompt };
             }
         } else {
             // Add
             const nextId = adminProducts.length > 0 ? Math.max(...adminProducts.map(p=>p.id)) + 1 : 1;
-            adminProducts.push({ id: nextId, name, category, price, image, designer });
+            adminProducts.push({ id: nextId, name, category, price, image, designer, customizationPrompt });
         }
 
         localStorage.setItem('zentrix_products', JSON.stringify(adminProducts));
@@ -149,6 +150,9 @@ window.editProduct = function(id) {
         document.getElementById('prodPrice').value = prod.price;
         document.getElementById('prodImage').value = prod.image;
         document.getElementById('prodDesigner').value = prod.designer;
+        if(document.getElementById('prodCustomPrompt')) {
+            document.getElementById('prodCustomPrompt').value = prod.customizationPrompt || '';
+        }
         productModal.classList.add('active');
     }
 }
@@ -187,11 +191,23 @@ function renderOrders() {
             <td>₹${Number(ord.total).toFixed(2)}</td>
             <td><span style="color: ${ord.status === 'Processing' ? '#ffaa00' : '#00ffaa'};">${ord.status}</span></td>
             <td>
-                <button class="cyber-btn outline-btn btn-small" onclick="viewOrder('${ord.id}')"><i class="fa-solid fa-eye"></i> View</button>
+                <div class="controls">
+                    <button class="cyber-btn outline-btn btn-small" onclick="viewOrder('${ord.id}')"><i class="fa-solid fa-eye"></i> View</button>
+                    <button class="cyber-btn outline-btn btn-small btn-danger" onclick="deleteOrder('${ord.id}')"><i class="fa-solid fa-trash"></i></button>
+                </div>
             </td>
         `;
         ordersBody.appendChild(tr);
     });
+}
+
+window.deleteOrder = function(id) {
+    if(confirm("Confirm destructive action on transit record (Delete Order)?")) {
+        let orders = JSON.parse(localStorage.getItem('zentrix_orders')) || [];
+        orders = orders.filter(o => o.id !== id);
+        localStorage.setItem('zentrix_orders', JSON.stringify(orders));
+        renderOrders();
+    }
 }
 
 // Render Users
@@ -208,9 +224,21 @@ function renderUsers() {
             <td><span class="neon-text">${user.email}</span></td>
             <td>${user.status}</td>
             <td style="color: ${user.clearance.includes('Admin') ? '#ff3366' : '#8892b0'};">${user.clearance}</td>
+            <td>
+                <button class="cyber-btn outline-btn btn-small btn-danger" onclick="deleteUser('${user.id}')" ${user.clearance.includes('Admin') ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}><i class="fa-solid fa-user-xmark"></i></button>
+            </td>
         `;
         usersBody.appendChild(tr);
     });
+}
+
+window.deleteUser = function(id) {
+    if(confirm("Confirm termination of user nexus link (Delete User)?")) {
+        let users = JSON.parse(localStorage.getItem('zentrix_users')) || [];
+        users = users.filter(u => u.id !== id);
+        localStorage.setItem('zentrix_users', JSON.stringify(users));
+        renderUsers();
+    }
 }
 
 // Init Tabs Data
@@ -232,59 +260,98 @@ if(orderDetailsClose) orderDetailsClose.addEventListener('click', () => {
 });
 
 window.viewOrder = function(id) {
-    const orders = JSON.parse(localStorage.getItem('zentrix_orders')) || [];
-    const ord = orders.find(o => o.id === id);
-    if(!ord) return;
+    window.location.href = `admin-order.html?id=${id}`;
+}
 
-    currentOrderId.value = ord.id;
-    updateStatusSelect.value = ord.status;
+// --- Standalone Order Page Logic ---
+function renderAdminOrderPage() {
+    const contentArea = document.getElementById('standaloneOrderContentArea');
+    if (!contentArea) return; // Not on the admin order page
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderId = urlParams.get('id');
+
+    if (!orderId) {
+        contentArea.innerHTML = '<p class="neon-text text-center">Error: Missing Order Designation.</p>';
+        return;
+    }
+
+    const orders = JSON.parse(localStorage.getItem('zentrix_orders')) || [];
+    const ord = orders.find(o => o.id === orderId);
+
+    if (!ord) {
+        contentArea.innerHTML = '<p class="neon-text text-center">Error: Order record not found in the matrix.</p>';
+        return;
+    }
+
+    // Show controls now that we have a valid order
+    const controls = document.getElementById('orderControlsWrapper');
+    if (controls) controls.style.display = 'block';
+
+    if (currentOrderId) currentOrderId.value = ord.id;
+    if (updateStatusSelect) updateStatusSelect.value = ord.status;
 
     let itemsHtml = `<p><strong>Address:</strong> <span style="color: var(--text-secondary);">${ord.address || 'N/A'}</span></p>
                      <p><strong>Customer:</strong> <span style="color: var(--neon-blue);">${ord.customer}</span></p>
+                     <p><strong>Transaction Date:</strong> <span style="color: var(--text-secondary);">${ord.date}</span></p>
+                     <p><strong>Current Status:</strong> <span style="color: ${ord.status === 'Cancelled' ? '#ff3366' : (ord.status === 'Processing' ? '#ffaa00' : '#00ffaa')};">${ord.status}</span></p>
                      <hr style="border-color: rgba(0,240,255,0.2); margin: 1rem 0;">
                      <h4 style="margin-bottom: 0.5rem; color: var(--text-primary);">Order Items</h4>`;
     
     if (ord.items && ord.items.length > 0) {
-        // Group items to show quantities
         const itemCounts = {};
         ord.items.forEach(item => {
-            if(itemCounts[item.id]) itemCounts[item.id].qty += 1;
-            else itemCounts[item.id] = { ...item, qty: 1 };
+            const key = item.cartItemId || item.id;
+            if(itemCounts[key]) itemCounts[key].qty += 1;
+            else itemCounts[key] = { ...item, qty: 1 };
         });
 
         Object.values(itemCounts).forEach(item => {
+            const customTag = item.customText ? `<div style="font-size: 0.8rem; color: #ffaa00; margin-top: 4px;"><i class="fa-solid fa-wand-sparkles"></i> Custom Engraving: "${item.customText}"</div>` : '';
             itemsHtml += `
                 <div style="display: flex; gap: 1rem; align-items: center; background: rgba(255,255,255,0.02); padding: 0.5rem; margin-bottom: 0.5rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);">
                     <img src="${item.image}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
                     <div style="flex: 1;">
                         <span style="display: block; font-weight: bold; font-size: 0.9rem;">${item.name}</span>
+                        ${customTag}
                         <span style="font-size: 0.8rem; color: var(--neon-blue);">₹${Number(item.price).toFixed(2)} x ${item.qty}</span>
+                    </div>
+                    <div style="font-weight: bold; font-family: 'Orbitron', sans-serif;">
+                        ₹${Number(item.price * item.qty).toFixed(2)}
                     </div>
                 </div>
             `;
         });
+        
+        itemsHtml += `
+            <div style="text-align: right; margin-top: 1rem; font-size: 1.2rem; font-family: 'Orbitron', sans-serif; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 1rem;">
+                <strong>Grand Total: <span class="neon-text">₹${Number(ord.total).toFixed(2)}</span></strong>
+            </div>
+        `;
     } else {
         itemsHtml += `<p style="font-style: italic; color: var(--text-secondary); font-size: 0.85rem;">Legacy Order: Itemized inventory not logged.</p>`;
     }
 
-    orderContentArea.innerHTML = itemsHtml;
-    orderDetailsModal.classList.add('active');
+    contentArea.innerHTML = itemsHtml;
 }
 
-if(saveOrderStatusBtn) {
+// Call renderer unconditionally (it will abort internally if elements aren't present)
+renderAdminOrderPage();
+
+if (saveOrderStatusBtn) {
     saveOrderStatusBtn.addEventListener('click', () => {
         let orders = JSON.parse(localStorage.getItem('zentrix_orders')) || [];
         const idx = orders.findIndex(o => o.id === currentOrderId.value);
-        if(idx > -1) {
+        if (idx > -1) {
             orders[idx].status = updateStatusSelect.value;
             localStorage.setItem('zentrix_orders', JSON.stringify(orders));
-            renderOrders();
-            orderDetailsModal.classList.remove('active');
+            alert("Matrix Synchronized. Order Status Updated.");
+            renderAdminOrderPage(); // Re-render to show updated status text natively
         }
     });
 }
 
-if(printReceiptBtn) {
+if (printReceiptBtn) {
     printReceiptBtn.addEventListener('click', () => {
         let orders = JSON.parse(localStorage.getItem('zentrix_orders')) || [];
         const ord = orders.find(o => o.id === currentOrderId.value);
@@ -294,13 +361,15 @@ if(printReceiptBtn) {
         if(ord.items && ord.items.length > 0) {
             const itemCounts = {};
             ord.items.forEach(item => {
-                if(itemCounts[item.id]) itemCounts[item.id].qty += 1;
-                else itemCounts[item.id] = { ...item, qty: 1 };
+                const key = item.cartItemId || item.id;
+                if(itemCounts[key]) itemCounts[key].qty += 1;
+                else itemCounts[key] = { ...item, qty: 1 };
             });
             Object.values(itemCounts).forEach(item => {
+                const customTextRow = item.customText ? `<br><small style="color: #666; font-style: italic;">Engraving: "${item.customText}"</small>` : '';
                 itemsRows += `
                     <tr>
-                        <td style="padding: 10px; border-bottom: 1px solid #ccc;">${item.name}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #ccc;">${item.name}${customTextRow}</td>
                         <td style="padding: 10px; border-bottom: 1px solid #ccc; text-align: center;">${item.qty}</td>
                         <td style="padding: 10px; border-bottom: 1px solid #ccc; text-align: right;">Rs ${Number(item.price).toFixed(2)}</td>
                         <td style="padding: 10px; border-bottom: 1px solid #ccc; text-align: right;">Rs ${Number(item.price * item.qty).toFixed(2)}</td>
@@ -333,6 +402,7 @@ if(printReceiptBtn) {
                     <strong>Order ID:</strong> ${ord.id}<br>
                     <strong>Date:</strong> ${ord.date}<br>
                     <strong>Customer:</strong> ${ord.customer}<br>
+                    <strong>Status:</strong> ${ord.status}<br>
                     <strong>Shipping Address:</strong> ${ord.address || 'N/A'}
                 </div>
                 <table>

@@ -157,6 +157,13 @@ function renderUserOrders() {
             </div>
         `;
     });
+    
+    // Add "View All" button at the bottom of the profie modal list
+    userOrdersContainer.innerHTML += `
+        <div style="text-align: center; margin-top: 1.5rem;">
+            <a href="orders.html" class="cyber-btn primary-btn" style="padding: 0.8rem 1.5rem; font-size: 0.9rem;">Access Full Order History</a>
+        </div>
+    `;
 }
 
 // --- Signup Logic ---
@@ -315,13 +322,15 @@ function renderProducts(filter = 'all') {
         const card = document.createElement('div');
         card.className = 'product-card';
         card.innerHTML = `
-            <img src="${prod.image}" alt="${prod.name}" class="product-img">
-            <div class="product-info">
-                <span class="product-category">${prod.category}</span>
-                <h3 class="product-title">${prod.name}</h3>
-                <span class="product-designer">Architect: <span class="neon-text">${prod.designer}</span></span>
-                <div class="product-footer">
-                    <span class="product-price">₹${Number(prod.price).toFixed(2)}</span>
+            <a href="product.html?id=${prod.id}" style="color: inherit; text-decoration: none; display: block;">
+                <img src="${prod.image}" alt="${prod.name}" class="product-img">
+                <div class="product-info">
+                    <span class="product-category">${prod.category}</span>
+                    <h3 class="product-title">${prod.name}</h3>
+                    <span class="product-designer">Architect: <span class="neon-text">${prod.designer}</span></span>
+            </a>
+            <div class="product-footer" style="padding: 0 1.5rem 1.5rem 1.5rem;">
+                <span class="product-price">₹${Number(prod.price).toFixed(2)}</span>
                     <button class="add-to-cart" onclick="addToCart(${prod.id})">
                         <i class="fa-solid fa-plus"></i>
                     </button>
@@ -338,21 +347,34 @@ function updateCartCount() {
     if(cartCount) cartCount.innerText = cart.length;
 }
 
-window.addToCart = function(productId) {
-    products = JSON.parse(localStorage.getItem('zentrix_products'));
+window.addToCart = function(productId, customText = '') {
+    products = JSON.parse(localStorage.getItem('zentrix_products')) || [];
     const product = products.find(p => p.id === productId);
     if(product) {
-        cart.push(product);
+        // Create a deep copy to allow unique customization per cart item
+        const cartItem = JSON.parse(JSON.stringify(product));
+        if (customText) {
+            cartItem.customText = customText;
+            // Generate a unique ID for customized items so they stack separately in checkout
+            cartItem.cartItemId = cartItem.id + '_' + Date.now();
+        } else {
+            cartItem.cartItemId = cartItem.id;
+        }
+
+        cart.push(cartItem);
         localStorage.setItem('zentrix_cart', JSON.stringify(cart));
         updateCartCount();
+        if(cartItemsContainer) renderCart();
         
         // Quick subtle animation on icon
-        cartBtn.style.transform = 'scale(1.2)';
-        cartCount.style.boxShadow = '0 0 15px var(--neon-blue)';
-        setTimeout(() => {
-            cartBtn.style.transform = 'scale(1)';
-            cartCount.style.boxShadow = '0 0 5px var(--neon-blue-glow)';
-        }, 300);
+        if(cartBtn) {
+            cartBtn.style.transform = 'scale(1.2)';
+            if(cartCount) cartCount.style.boxShadow = '0 0 15px var(--neon-blue)';
+            setTimeout(() => {
+                cartBtn.style.transform = 'scale(1)';
+                if(cartCount) cartCount.style.boxShadow = '0 0 5px var(--neon-blue-glow)';
+            }, 300);
+        }
     }
 }
 
@@ -378,12 +400,14 @@ function renderCart() {
 
     cart.forEach((item, index) => {
         total += Number(item.price);
+        const customTag = item.customText ? `<div style="font-size: 0.75rem; color: #ffaa00; margin-top: 2px;"><i class="fa-solid fa-wand-sparkles"></i> "${item.customText}"</div>` : '';
         const cartEl = document.createElement('div');
         cartEl.className = 'cart-item';
         cartEl.innerHTML = `
             <img src="${item.image}" alt="" class="cart-item-img">
             <div class="cart-item-details">
                 <h4 class="cart-item-title">${item.name}</h4>
+                ${customTag}
                 <div class="cart-item-price">₹${Number(item.price).toFixed(2)}</div>
                 <div class="cart-item-remove" onclick="removeFromCart(${index})">
                     <i class="fa-solid fa-trash-can"></i> Jettison
@@ -437,7 +461,201 @@ if(checkoutBtn) {
     });
 }
 
+// --- Product Detail Render ---
+function renderProductDetail() {
+    const detailContainer = document.getElementById('productDetailContainer');
+    if (!detailContainer) return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = Number(urlParams.get('id'));
+
+    if (!productId) {
+        detailContainer.innerHTML = '<p class="neon-text text-center">Error: Invalid Blueprint ID.</p>';
+        return;
+    }
+
+    products = JSON.parse(localStorage.getItem('zentrix_products')) || [];
+    const prod = products.find(p => p.id === productId);
+
+    if (!prod) {
+        detailContainer.innerHTML = '<p class="neon-text text-center">Error: Blueprint not found in the matrix.</p>';
+        return;
+    }
+
+    const hasCustomization = prod.category === 'keychains' || !!prod.customizationPrompt;
+    const promptText = prod.customizationPrompt || "Enter custom text for engraving (Max 12 chars):";
+
+    let customHtml = '';
+    if (hasCustomization) {
+        customHtml = `
+            <div style="margin-top: 1.5rem; background: rgba(0,240,255,0.05); padding: 1.5rem; border: 1px solid rgba(0,240,255,0.2); border-radius: 8px;">
+                <label style="display: block; color: var(--neon-blue); margin-bottom: 0.5rem; font-family: 'Orbitron', sans-serif;"><i class="fa-solid fa-wand-magic-sparkles"></i> Customization Module</label>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">${promptText}</p>
+                <input type="text" id="productCustomInput" placeholder="Your Text Here..." maxlength="20" style="width: 100%; padding: 12px; background: rgba(0,0,0,0.6); border: 1px solid var(--border-subtle); color: white; border-radius: 4px; font-size: 1rem; margin-bottom: 1rem;">
+            </div>
+        `;
+    }
+
+    detailContainer.innerHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start; background: rgba(255,255,255,0.02); padding: 3rem; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;">
+            <div style="border-radius: 8px; overflow: hidden; border: 1px solid rgba(0,240,255,0.2); box-shadow: 0 0 30px rgba(0,240,255,0.05);">
+                <img src="${prod.image}" alt="${prod.name}" style="width: 100%; height: auto; display: block; object-fit: cover; aspect-ratio: 1/1;">
+            </div>
+            
+            <div style="display: flex; flex-direction: column; justify-content: center;">
+                <a href="shop.html" style="color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; margin-bottom: 1rem; display: inline-block;">&larr; Back to Repository</a>
+                <span style="color: var(--neon-blue); font-family: 'Orbitron', sans-serif; font-size: 0.9rem; letter-spacing: 2px; text-transform: uppercase;">${prod.category}</span>
+                <h1 style="font-family: 'Orbitron', sans-serif; color: white; font-size: 2.5rem; margin: 0.5rem 0;">${prod.name}</h1>
+                <p style="color: #a4b1cd; font-size: 1.1rem; margin-bottom: 2rem;">Architect: <span class="neon-text">${prod.designer}</span></p>
+                
+                <div style="font-size: 2rem; color: white; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+                    ₹${Number(prod.price).toFixed(2)}
+                </div>
+                
+                <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 2rem;">Authentic 3D printed artifact. Manufactured locally via specialized micro-factories using premium polymers.</p>
+
+                ${customHtml}
+
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button id="detailAddToCartBtn" class="cyber-btn primary-btn" style="flex: 1; padding: 1.2rem; font-size: 1.1rem;">
+                        <i class="fa-solid fa-cart-shopping"></i> Add to Cargo
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const detailAddBtn = document.getElementById('detailAddToCartBtn');
+    if (detailAddBtn) {
+        detailAddBtn.addEventListener('click', () => {
+            const customInput = document.getElementById('productCustomInput');
+            let textVal = '';
+            
+            if (hasCustomization && customInput) {
+                textVal = customInput.value.trim();
+                // We're not making it strictly mandatory if they leave it blank, but we store it if present.
+            }
+            
+            window.addToCart(prod.id, textVal);
+            
+            // Visual feedback
+            detailAddBtn.innerHTML = '<i class="fa-solid fa-check"></i> Added';
+            detailAddBtn.style.background = '#00ffaa';
+            detailAddBtn.style.color = 'black';
+            detailAddBtn.style.boxShadow = '0 0 15px rgba(0, 255, 170, 0.4)';
+            
+            setTimeout(() => {
+                detailAddBtn.innerHTML = '<i class="fa-solid fa-cart-shopping"></i> Add to Cargo';
+                detailAddBtn.style.background = 'transparent';
+                detailAddBtn.style.color = '#00f0ff';
+                detailAddBtn.style.boxShadow = 'none';
+                
+                // Open cart drawer
+                if(cartDrawer) cartDrawer.classList.add('open');
+                if(overlay) overlay.classList.add('active');
+            }, 1000);
+        });
+    }
+}
+
 // Init
 renderProducts();
 updateCartCount();
 updateCheckoutUI();
+renderProductDetail();
+
+// --- Standalone User Orders Page ---
+function renderFullUserOrders() {
+    const listContainer = document.getElementById('fullUserOrdersList');
+    if (!listContainer) return;
+
+    if (!currentUser) {
+        listContainer.innerHTML = '<div style="text-align: center; padding: 3rem;"><i class="fa-solid fa-lock" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i><br><p class="neon-text">Authorization Required. Please login to view your transmission history.</p><a href="index.html" class="cyber-btn outline-btn mt-2">Return to Surface</a></div>';
+        return;
+    }
+
+    let orders = JSON.parse(localStorage.getItem('zentrix_orders')) || [];
+    let myOrders = orders.filter(o => o.customer === currentUser.email);
+    
+    listContainer.innerHTML = '';
+    
+    if (myOrders.length === 0) {
+        listContainer.innerHTML = '<p style="color: var(--text-secondary); text-align: center; font-style: italic; padding: 2rem;">No transmissions detected on the network.</p>';
+        return;
+    }
+
+    myOrders.forEach(ord => {
+        let statusColor = '#00f0ff';
+        if (ord.status === 'Processing') statusColor = '#ffaa00';
+        if (ord.status === 'Shipped') statusColor = '#00ffaa';
+        if (ord.status === 'Delivered') statusColor = '#00ffaa';
+        if (ord.status === 'Cancelled') statusColor = '#ff3366';
+
+        let itemsHtml = '';
+        if (ord.items && ord.items.length > 0) {
+            const itemCounts = {};
+            ord.items.forEach(item => {
+                const key = item.cartItemId || item.id;
+                if(itemCounts[key]) itemCounts[key].qty += 1;
+                else itemCounts[key] = { ...item, qty: 1 };
+            });
+
+            Object.values(itemCounts).forEach(item => {
+                const customTag = item.customText ? `<span style="color: #ffaa00;">(Engraving: "${item.customText}")</span>` : '';
+                itemsHtml += `
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <span style="font-size: 0.9rem; color: var(--text-primary);">${item.name} x${item.qty} ${customTag}</span>
+                        <span style="font-size: 0.9rem; color: var(--text-secondary);">₹${Number(item.price * item.qty).toFixed(2)}</span>
+                    </div>
+                `;
+            });
+        }
+
+        const cancelBtnHtml = ord.status === 'Processing' 
+            ? `<button onclick="cancelOrder('${ord.id}')" class="cyber-btn outline-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; border-color: #ff3366; color: #ff3366;"><i class="fa-solid fa-xmark"></i> Abort Request</button>`
+            : '';
+
+        listContainer.innerHTML += `
+            <div style="background: rgba(255,255,255,0.02); padding: 1.5rem; border: 1px solid rgba(0, 240, 255, 0.1); border-radius: 8px; margin-bottom: 1.5rem; transition: transform 0.2s;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem;">
+                    <div>
+                        <strong class="neon-text" style="font-size: 1.2rem;">${ord.id}</strong><br>
+                        <span style="font-size: 0.9rem; color: var(--text-secondary);"><i class="fa-regular fa-calendar"></i> ${ord.date}</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="display: inline-block; padding: 0.3rem 0.8rem; background: rgba(0,0,0,0.5); border: 1px solid ${statusColor}; color: ${statusColor}; border-radius: 4px; font-size: 0.85rem; font-weight: 600; margin-bottom: 10px;">${ord.status}</span>
+                        <div>${cancelBtnHtml}</div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <strong style="font-size: 0.9rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px;">Cargo Manifest</strong>
+                    ${itemsHtml || '<div style="font-size: 0.8rem; color: #a4b1cd; margin-top: 5px;">Legacy Order: Itemized inventory not logged.</div>'}
+                </div>
+                
+                <div style="text-align: right; font-family: 'Orbitron', sans-serif; font-size: 1.1rem;">
+                    Grand Total: <strong class="neon-text">₹${Number(ord.total).toFixed(2)}</strong>
+                </div>
+            </div>
+        `;
+    });
+}
+
+window.cancelOrder = function(id) {
+    if(confirm("Are you certain you wish to abort this transmission? (Cancel Order)")) {
+        let orders = JSON.parse(localStorage.getItem('zentrix_orders')) || [];
+        const idx = orders.findIndex(o => o.id === id);
+        if(idx > -1 && orders[idx].status === 'Processing') {
+            orders[idx].status = 'Cancelled';
+            localStorage.setItem('zentrix_orders', JSON.stringify(orders));
+            renderFullUserOrders();
+            renderUserOrders(); // Update modal cache if open
+        } else {
+            alert("Error: Order cannot be aborted at its current status.");
+        }
+    }
+}
+
+// Call on load (will safely do nothing if container is not found)
+renderFullUserOrders();
+
