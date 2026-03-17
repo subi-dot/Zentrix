@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zentrix Designs | Futuristic 3D Micro-Factory</title>
+    <title>Shop | Zentrix Designs</title>
     <meta name="description" content="Shop high-end, satisfying 3D printed gadgets and custom keychains from Zentrix Designs.">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,21 +12,20 @@
     <link rel="stylesheet" href="css/styles.css">
     <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="prefetch" href="shop.html">
 </head>
 <body>
 
     <!-- Navigation -->
-    <nav class="navbar">
+    <nav class="navbar scrolled" style="background: rgba(10, 15, 25, 0.95);">
         <div class="logo">
             <a href="index.html">
                 <span class="neon-text">ZENTRIX</span> <span class="light-text">DESIGNS</span>
             </a>
         </div>
         <ul class="nav-links">
-            <li><a href="#home">Home</a></li>
-            <li><a href="shop.html">Shop</a></li>
-            <li><a href="#global-designers">Global Designers</a></li>
+            <li><a href="index.html#home">Home</a></li>
+            <li><a href="shop.html" style="color: var(--neon-blue);">Shop</a></li>
+            <li><a href="index.html#global-designers">Global Designers</a></li>
         </ul>
         <div class="nav-actions">
             <button id="loginBtn" class="action-btn"><i class="fa-regular fa-user"></i> Login</button>
@@ -157,39 +156,29 @@
     </div>
     <div id="drawerOverlay" class="overlay"></div>
 
-    <!-- Hero Section -->
-    <header id="home" class="hero">
-        <div class="hero-bg"></div>
-        <div class="hero-content">
-            <h1 class="glitch-title" data-text="TACTILE PERFECTION">TACTILE PERFECTION</h1>
-            <h2 class="subtitle">Printed for You.</h2>
-            <p class="hero-desc">Experience the future of micro-manufacturing. Precision engineering meets high-fashion cyber aesthetics.</p>
-            <a href="shop.html" class="cyber-btn primary-btn lg-btn mt-2">Initialize Shopping Sequence</a>
-        </div>
-    </header>
+    <!-- Hero Removed from Shop Page -->
 
-    <!-- Shop Section Migrated to shop.html -->
-
-    <!-- Global Designers Section -->
-    <section id="global-designers" class="section-padding dark-section">
+    <!-- Shop Grid Section -->
+    <section id="shop" class="section-padding" style="margin-top: 80px; min-height: 80vh;">
         <div class="container">
-            <div class="designer-grid">
-                <div class="designer-text">
-                    <h2 class="section-title">Open Source Synergy</h2>
-                    <h3 class="neon-text">Global Artists + Local Micro-Factory</h3>
-                    <p>Zentrix Designs is powered by human ingenuity spanning the globe. We collaborate closely with premier 3D architects and open-source creators to bring digital imagination into tactile reality.</p>
-                    <p>Every piece credits the original architect, ensuring that creativity is rewarded in our interconnected ecosystem.</p>
-                    <button class="cyber-btn outline-btn mt-2">Meet the Architects</button>
-                </div>
-                <div class="designer-visual">
-                    <div class="globe-element">
-                        <i class="fa-solid fa-earth-americas globe-icon rotating"></i>
-                        <div class="pulse-ring"></div>
-                    </div>
-                </div>
+            <div class="section-header text-center">
+                <h2 class="section-title">Artifact Repository</h2>
+                <div class="decor-line"></div>
+            </div>
+            
+            <div class="category-filters">
+                <button class="filter-btn active" data-filter="all">All Specs</button>
+                <button class="filter-btn" data-filter="fidgets">Satisfying Fidgets</button>
+                <button class="filter-btn" data-filter="keychains">Custom Keychains</button>
+            </div>
+
+            <div class="product-grid" id="productGrid">
+                <!-- Products injected via JS -->
             </div>
         </div>
     </section>
+
+    <!-- Global Designers Removed from Shop Page -->
 
     <!-- Footer -->
     <footer class="footer">
@@ -204,9 +193,9 @@
                 <div class="footer-links">
                     <h4>Navigation</h4>
                     <ul>
-                        <li><a href="#home">Home Base</a></li>
+                        <li><a href="index.html#home">Home Base</a></li>
                         <li><a href="shop.html">Repository</a></li>
-                        <li><a href="#global-designers">Architects</a></li>
+                        <li><a href="index.html#global-designers">Architects</a></li>
                         <li><a href="#">Contact Nexus</a></li>
                     </ul>
                 </div>
