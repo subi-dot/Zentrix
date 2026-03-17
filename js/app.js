@@ -245,30 +245,17 @@ if(signupForm) {
             message: verificationCode
         };
 
-        if ('YOUR_SERVICE_ID' === 'YOUR_SERVICE_ID' && !window.hasAlertedEmailJS) {
-            alert("EmailJS is not yet configured. Simulating email dispatch.\n\nTo: " + email + "\nCode: " + verificationCode);
-            window.hasAlertedEmailJS = true;
-            // Switch to Verify Modal
-            loginModal.classList.remove('active');
-            verifyModal.classList.add('active');
-        } else {
-            // Replace 'YOUR_SERVICE_ID' and 'YOUR_TEMPLATE_ID' with actual EmailJS IDs once account is set up
-            emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', templateParams)
-                .then(function(response) {
-                    console.log('SUCCESS!', response.status, response.text);
-                    // Switch to Verify Modal
-                    loginModal.classList.remove('active');
-                    verifyModal.classList.add('active');
-                }, function(error) {
-                    console.log('FAILED...', error);
-                    alert("Comm Line Failure: Could not dispatch verification code to " + email);
-                    
-                    // Fallback to visual alert for testing purposes if it fails due to config
-                    alert("Simulating email dispatch.\n\nTo: " + email + "\nCode: " + verificationCode);
-                    loginModal.classList.remove('active');
-                    verifyModal.classList.add('active');
-                });
-        }
+        // Replace 'YOUR_SERVICE_ID' and 'YOUR_TEMPLATE_ID' with actual EmailJS IDs once account is set up
+        emailjs.send('service_6bhccr2', 'template_kn3dcuq', templateParams)
+            .then(function(response) {
+                console.log('SUCCESS!', response.status, response.text);
+                // Switch to Verify Modal
+                loginModal.classList.remove('active');
+                verifyModal.classList.add('active');
+            }, function(error) {
+                console.log('FAILED...', error);
+                alert("Comm Line Failure: Could not dispatch verification code to " + email);
+            });
         
         // Close out the DB query scope
         }).catch(err => {
