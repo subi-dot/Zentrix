@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout | Zentrix Designs</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .checkout-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        @media(max-width: 768px) {
+            .checkout-grid { grid-template-columns: 1fr; }
+        }
+        .checkout-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            padding: 2rem;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar scrolled" style="background: rgba(10, 15, 25, 0.95);">
+        <div class="logo">
+            <a href="index.html">
+                <span class="neon-text">ZENTRIX</span> <span class="light-text">DESIGNS</span>
+            </a>
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html#home">Home</a></li>
+            <li><a href="index.html#shop">Shop</a></li>
+            <li><a href="#" id="loggedUserIcon"><i class="fa-solid fa-user-check" style="color:var(--neon-blue);"></i> User</a></li>
+        </ul>
+    </nav>
+
+    <section class="section-padding" style="margin-top: 80px; min-height: 80vh;">
+        <div class="container">
+            <h1 class="orbitron neon-text">Checkout Sequence</h1>
+            <div class="checkout-grid">
+                
+                <div class="checkout-items checkout-box">
+                    <h2 style="margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; font-family: 'Orbitron', sans-serif;">Order Manifest</h2>
+                    <div id="checkoutItemsList">
+                        <!-- Items injected here -->
+                    </div>
+                </div>
+
+                <div class="checkout-summary checkout-box">
+                    <h2 style="margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; font-family: 'Orbitron', sans-serif;">Transmission Details</h2>
+                    
+                    <form id="checkoutForm">
+                        <div class="input-group">
+                            <label>Shipping Address</label>
+                            <textarea id="checkoutAddress" required rows="3" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); color: white; resize: none; border-radius: 4px; font-family: 'Inter', sans-serif;" placeholder="Enter your full shipping address..."></textarea>
+                        </div>
+                        
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem;">Payment Method</label>
+                            <div style="padding: 10px; border: 1px solid var(--neon-blue); background: rgba(0, 240, 255, 0.1); border-radius: 4px; color: white;">
+                                <i class="fa-solid fa-money-bill-wave" style="color: #00ffaa;"></i> Cash on Delivery (CASH)
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 1.5rem; font-size: 1.2rem; font-weight: bold; padding-top: 1rem; border-top: 1px dashed rgba(255,255,255,0.2);">
+                            <span>Total Transmission</span>
+                            <span id="checkoutTotal" class="neon-text">₹0.00</span>
+                        </div>
+                        
+                        <!-- The Place Order button -->
+                        <button type="submit" class="cyber-btn primary-btn w-100" id="placeOrderBtn" style="font-size: 1.2rem; padding: 1rem; text-transform: uppercase; letter-spacing: 2px;">
+                            <i class="fa-solid fa-bolt"></i> Place Order
+                        </button>
+                        <div class="mt-1 text-center">
+                            <a href="index.html" class="accent-link" style="font-size: 0.85rem;"><i class="fa-solid fa-arrow-left"></i> Return to Repository</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 500px; text-align: center;">
+            <h2 class="neon-text mb-2">Transmission Complete</h2>
+            <i class="fa-solid fa-circle-check" style="font-size: 4rem; color: #00ffaa; margin-bottom: 1.5rem;"></i>
+            <p style="font-size: 1.1rem; margin-bottom: 1rem;">Your order <strong id="successOrderId" style="color: white; font-family: 'Orbitron', sans-serif; letter-spacing: 1px;"></strong> has been successfully placed into the manufacturing queue.</p>
+            <p style="margin-bottom: 2rem; color: var(--text-secondary); font-size: 0.9rem;">You can track your order status in the User Nexus.</p>
+            <a href="index.html" class="cyber-btn primary-btn w-100 mb-1">Return to Surface Web</a>
+        </div>
+    </div>
+    <div id="drawerOverlay" class="overlay"></div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom text-center">
+                <p>&copy; 2026 Zentrix Designs. All systems nominal. | <a href="terms.html">Terms of Service</a> | <a href="privacy.html">Privacy Protocol</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/checkout.js"></script>
+</body>
+</html>

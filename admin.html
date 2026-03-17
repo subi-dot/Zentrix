@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zentrix Admin Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Admin specific styles */
+        body { background-color: #050505; color: #e0e0e0; }
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 250px; background: rgba(10, 15, 25, 0.95); border-right: 1px solid rgba(0, 255, 255, 0.2); padding: 2rem; display: flex; flex-direction: column; }
+        .sidebar-nav { margin-top: 3rem; flex: 1; list-style: none; padding: 0; }
+        .sidebar-nav li { margin-bottom: 1rem; }
+        .sidebar-nav a { color: #8892b0; text-decoration: none; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; padding: 0.5rem; border-radius: 4px; transition: all 0.3s ease; }
+        .sidebar-nav a:hover, .sidebar-nav a.active { color: #00f0ff; background: rgba(0, 240, 255, 0.1); }
+        .main-content { flex: 1; padding: 2rem 4rem; overflow-y: auto; }
+        
+        .admin-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); padding: 2rem; border-radius: 8px; margin-bottom: 2rem; }
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        .data-table th, .data-table td { padding: 1rem; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .data-table th { color: #00f0ff; font-family: 'Orbitron', sans-serif; text-transform: uppercase; font-size: 0.9rem; letter-spacing: 1px; }
+        .data-table tr:hover { background: rgba(255, 255, 255, 0.02); }
+        
+        .action-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .controls { display: flex; gap: 10px; }
+        .btn-small { padding: 0.5rem 1rem; font-size: 0.8rem; }
+        .btn-danger { border-color: #ff3366; color: #ff3366; }
+        .btn-danger:hover { background: rgba(255, 51, 102, 0.2); box-shadow: 0 0 10px rgba(255, 51, 102, 0.4); }
+        
+        .auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #050505; z-index: 2000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .auth-box { background: rgba(15, 20, 31, 0.95); border: 1px solid rgba(0, 240, 255, 0.3); padding: 3rem; border-radius: 8px; width: 400px; text-align: center; box-shadow: 0 0 30px rgba(0, 240, 255, 0.1); }
+        .auth-box h2 { font-family: 'Orbitron', sans-serif; color: #00f0ff; margin-bottom: 2rem; }
+        .auth-box input { width: 100%; padding: 1rem; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); color: white; margin-bottom: 1.5rem; text-align: center; font-size: 1.2rem; letter-spacing: 2px; }
+        .auth-box input:focus { border-color: #00f0ff; outline: none; box-shadow: 0 0 10px rgba(0,240,255,0.2); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+
+    <!-- Admin Auth -->
+    <div id="adminAuthOverlay" class="auth-overlay">
+        <div class="auth-box">
+            <h2>SYS_ADMIN AUTH</h2>
+            <form id="adminAuthForm">
+                <input type="password" id="adminPassword" placeholder="ACCESS KEY" required>
+                <button type="submit" class="cyber-btn primary-btn w-100">Initialize Bypass</button>
+            </form>
+            <p id="authErrorMsg" style="color: #ff3366; margin-top: 1rem; display: none;">ACCESS DENIED</p>
+            <p class="mt-2" style="font-size: 0.8rem;"><a href="index.html" style="color: #8892b0;">Return to Surface Web</a></p>
+        </div>
+    </div>
+
+    <div class="admin-layout" id="adminDashboard" style="display: none;">
+        <aside class="sidebar">
+            <div class="logo">
+                <a href="index.html">
+                    <span class="neon-text">ZENTRIX</span> <br/><span class="light-text" style="font-size: 1rem;">SYS_ADMIN</span>
+                </a>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="#" class="tab-link active" data-target="inventoryTab"><i class="fa-solid fa-boxes-stacked"></i> Inventory</a></li>
+                <li><a href="#" class="tab-link" data-target="ordersTab"><i class="fa-solid fa-clipboard-list"></i> Orders</a></li>
+                <li><a href="#" class="tab-link" data-target="usersTab"><i class="fa-solid fa-users"></i> Users</a></li>
+                <li><a href="#" class="tab-link" data-target="settingsTab"><i class="fa-solid fa-gear"></i> Settings</a></li>
+                <li style="margin-top: auto;"><a href="index.html" onclick="sessionStorage.removeItem('admin_auth')"><i class="fa-solid fa-arrow-left"></i> Logout & Return</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            
+            <!-- Inventory Tab -->
+            <section id="inventoryTab" class="tab-content active">
+                <header class="action-flex">
+                    <h1 class="orbitron neon-text">Inventory Management</h1>
+                    <button class="cyber-btn primary-btn" id="addProdBtn"><i class="fa-solid fa-plus"></i> Add Blueprint</button>
+                </header>
+
+                <div class="admin-card">
+                    <table class="data-table" id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryBody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Add/Edit Modal -->
+            <div id="productModal" class="modal">
+                <div class="modal-content glass-panel" style="max-width: 600px;">
+                    <span class="close-btn product-close">&times;</span>
+                    <h2 class="orbitron neon-text mb-2">Compile Blueprint</h2>
+                    <form id="productForm">
+                        <input type="hidden" id="prodId">
+                        <div class="form-grid">
+                            <div class="input-group">
+                                <label>Designation (Name)</label>
+                                <input type="text" id="prodName" required>
+                            </div>
+                            <div class="input-group">
+                                <label>Category</label>
+                                <select id="prodCategory" required>
+                                    <option value="fidgets">Satisfying Fidgets</option>
+                                    <option value="keychains">Custom Keychains</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Value (INR)</label>
+                                <input type="number" step="0.01" id="prodPrice" required>
+                            </div>
+                            <div class="input-group">
+                                <label>Visual Asset (URL)</label>
+                                <input type="text" id="prodImage" placeholder="img/placeholder.png" required>
+                            </div>
+                            <div class="input-group full-width">
+                                <label>Architect (Global Designer)</label>
+                                <input type="text" id="prodDesigner" placeholder="e.g. CyberSmith99" required>
+                            </div>
+                        </div>
+                        <div class="mt-2" style="display: flex; gap: 10px; justify-content: flex-end;">
+                            <button type="button" class="cyber-btn outline-btn product-close-btn">Abort</button>
+                            <button type="submit" class="cyber-btn primary-btn">Commit to Database</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            </section>
+
+            <!-- Orders Tab -->
+            <section id="ordersTab" class="tab-content">
+                <header class="action-flex">
+                    <h1 class="orbitron neon-text">Order Transmissions</h1>
+                </header>
+                <div class="admin-card">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Date</th>
+                                <th>Customer</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Users Tab -->
+            <section id="usersTab" class="tab-content">
+                <header class="action-flex">
+                    <h1 class="orbitron neon-text">User Directory</h1>
+                </header>
+                <div class="admin-card">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>User ID</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Clearance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Settings Tab -->
+            <section id="settingsTab" class="tab-content">
+                <header class="action-flex">
+                    <h1 class="orbitron neon-text">System Configuration</h1>
+                </header>
+                <div class="admin-card" style="max-width: 600px;">
+                    <form onsubmit="event.preventDefault(); alert('Settings Saved to Mainframe.');">
+                        <div class="input-group">
+                            <label>Store Name</label>
+                            <input type="text" value="Zentrix Designs" class="w-100">
+                        </div>
+                        <div class="input-group">
+                            <label>Global Sales Tax (%)</label>
+                            <input type="number" value="8.5" class="w-100">
+                        </div>
+                        <div class="input-group">
+                            <label>Admin Password</label>
+                            <input type="password" value="Sebs@123" class="w-100" readonly>
+                        </div>
+                        <button class="cyber-btn primary-btn mt-1">Update Core Matrix</button>
+                    </form>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Order Details Modal -->
+    <div id="orderDetailsModal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 600px;">
+            <span class="close-btn order-details-close">&times;</span>
+            <h2 class="orbitron neon-text mb-2">Order Analytics <i class="fa-solid fa-satellite-dish glow-icon"></i></h2>
+            <div id="orderContentArea">
+                <!-- Data injected by JS -->
+            </div>
+            
+            <div class="mt-2" style="background: rgba(0,0,0,0.4); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                <label style="color: var(--text-secondary); font-family: var(--font-heading); font-size: 0.85rem; display: block; margin-bottom: 0.5rem; text-transform: uppercase;">Update Status</label>
+                <div style="display: flex; gap: 10px;">
+                    <select id="updateStatusSelect" style="flex: 1; padding: 0.8rem; background: rgba(0,0,0,0.5); border: 1px solid var(--neon-blue); border-radius: 4px; color: white; font-family: var(--font-body);">
+                        <option value="Processing">Processing</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Delivered">Delivered</option>
+                    </select>
+                    <input type="hidden" id="currentOrderId">
+                    <button class="cyber-btn primary-btn" id="saveOrderStatusBtn">Sync Matrix</button>
+                    <button class="cyber-btn outline-btn" id="printReceiptBtn" style="margin-left: 10px; border-color: #00ffaa; color: #00ffaa;"><i class="fa-solid fa-print"></i> Generate Receipt</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/admin.js"></script>
+</body>
+</html>
