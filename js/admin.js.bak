@@ -71,7 +71,7 @@ tabLinks.forEach(link => {
     });
 });
 
-let adminProducts = [];
+let adminProducts = JSON.parse(localStorage.getItem('zentrix_products')) || [];
 
 // DOM Elements
 const inventoryBody = document.getElementById('inventoryBody');
@@ -80,19 +80,12 @@ const productModal = document.getElementById('productModal');
 const productCloseBtns = document.querySelectorAll('.product-close, .product-close-btn');
 const productForm = document.getElementById('productForm');
 
-let unsubscribeInventory = null;
 function renderInventory() {
     if(!inventoryBody) return;
+    adminProducts = JSON.parse(localStorage.getItem('zentrix_products')) || [];
     
-    if (unsubscribeInventory) unsubscribeInventory();
-    
-    unsubscribeInventory = db.collection('products').onSnapshot((snapshot) => {
-        adminProducts = [];
-        inventoryBody.innerHTML = '';
-        snapshot.forEach(doc => {
-            const prod = doc.data();
-            prod.id = prod.id || doc.id;
-            adminProducts.push(prod);
+    inventoryBody.innerHTML = '';
+    adminProducts.forEach(prod => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>#${prod.id}</td>
@@ -108,9 +101,6 @@ function renderInventory() {
             </td>
         `;
         inventoryBody.appendChild(tr);
-        });
-    }, err => {
-        console.error("Firestore Inventory Stream Error:", err);
     });
 }
 
@@ -147,36 +137,29 @@ if(productForm) {
             image = category === 'fidgets' ? 'img/fidget_1.png' : 'img/keychain_1.png';
         }
 
-        const prodData = { name, category, price: Number(price), image, designer, customizationPrompt };
-        
-        let promise;
         if (idVal) {
             // Edit
-            prodData.id = Number(idVal); // Keep ID consistency if it's numeric
-            promise = db.collection('products').doc(idVal.toString()).set(prodData, {merge: true});
+            const idx = adminProducts.findIndex(p => p.id == idVal);
+            if(idx > -1) {
+                adminProducts[idx] = { id: Number(idVal), name, category, price, image, designer, customizationPrompt };
+            }
         } else {
             // Add
-            const nextId = adminProducts.length > 0 ? Math.max(...adminProducts.map(p=>Number(p.id) || 0)) + 1 : 1;
-            prodData.id = nextId;
-            promise = db.collection('products').doc(nextId.toString()).set(prodData);
+            const nextId = adminProducts.length > 0 ? Math.max(...adminProducts.map(p=>p.id)) + 1 : 1;
+            adminProducts.push({ id: nextId, name, category, price, image, designer, customizationPrompt });
         }
 
-        promise.then(() => {
-            productModal.classList.remove('active');
-            // renderInventory() will auto-fire due to onSnapshot
-        }).catch(err => {
-            console.error("Error saving product:", err);
-            alert("Matrix Error: Failed to save blueprint.");
-        });
+        localStorage.setItem('zentrix_products', JSON.stringify(adminProducts));
+        productModal.classList.remove('active');
+        renderInventory();
     });
 }
 
 window.deleteProduct = function(id) {
     if(confirm("Confirm destructive action on catalog item?")) {
-        db.collection('products').doc(id.toString()).delete().catch(err => {
-            console.error("Delete Error:", err);
-            alert("Delete Protocol Failed.");
-        });
+        adminProducts = adminProducts.filter(p => p.id !== id);
+        localStorage.setItem('zentrix_products', JSON.stringify(adminProducts));
+        renderInventory();
     }
 }
 
@@ -207,35 +190,21 @@ const defaultUsers = [
     { id: "USR-003", email: "glitch_girl@proxy.org", status: "Active", clearance: "Level 1 (User)" }
 ];
 
-db.collection('orders').get().then(snapshot => {
-    if (snapshot.empty) {
-        defaultOrders.forEach(o => {
-            db.collection('orders').doc(o.id.toString()).set(o);
-        });
-    }
-});
-db.collection('users').get().then(snapshot => {
-    if (snapshot.empty) {
-        defaultUsers.forEach(u => {
-            db.collection('users').doc(u.id.toString()).set(u);
-        });
-    }
-});
+if (!localStorage.getItem('zentrix_orders')) {
+    localStorage.setItem('zentrix_orders', JSON.stringify(defaultOrders));
+}
+if (!localStorage.getItem('zentrix_users')) {
+    localStorage.setItem('zentrix_users', JSON.stringify(defaultUsers));
+}
 
-// Render Orders with real-time listener
-let unsubscribeOrders = null;
+// Render Orders
 function renderOrders() {
     const ordersBody = document.getElementById('ordersBody');
     if(!ordersBody) return;
+    const orders = JSON.parse(localStorage.getItem('zentrix_orders')) || [];
     
-    if (unsubscribeOrders) unsubscribeOrders();
-    
-    unsubscribeOrders = db.collection('orders').orderBy('date', 'desc').onSnapshot((snapshot) => {
-        ordersBody.innerHTML = '';
-        snapshot.forEach(doc => {
-            const ord = doc.data();
-            // ensure id is set in data or use doc.id
-            ord.id = ord.id || doc.id;
+    ordersBody.innerHTML = '';
+    orders.forEach(ord => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><span class="neon-text">${ord.id}</span></td>
@@ -251,18 +220,15 @@ function renderOrders() {
             </td>
         `;
         ordersBody.appendChild(tr);
-        });
-    }, err => {
-        console.error("Firestore Order Stream Error:", err);
     });
 }
 
 window.deleteOrder = function(id) {
     if(confirm("Confirm destructive action on transit record (Delete Order)?")) {
-        db.collection('orders').doc(id.toString()).delete().catch(err => {
-            console.error("Delete Error:", err);
-            alert("Delete Protocol Failed.");
-        });
+        let orders = JSON.parse(localStorage.getItem('zentrix_orders')) || [];
+        orders = orders.filter(o => o.id !== id);
+        localStorage.setItem('zentrix_orders', JSON.stringify(orders));
+        renderOrders();
     }
 }
 
@@ -270,13 +236,10 @@ window.deleteOrder = function(id) {
 function renderUsers() {
     const usersBody = document.getElementById('usersBody');
     if(!usersBody) return;
+    const users = JSON.parse(localStorage.getItem('zentrix_users')) || [];
     
-    db.collection('users').get().then((snapshot) => {
-        usersBody.innerHTML = '';
-        snapshot.forEach(doc => {
-            const user = doc.data();
-            // ensure id is available
-            user.id = user.id || doc.id;
+    usersBody.innerHTML = '';
+    users.forEach(user => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${user.id}</td>
@@ -288,18 +251,15 @@ function renderUsers() {
             </td>
         `;
         usersBody.appendChild(tr);
-        });
     });
 }
 
 window.deleteUser = function(id) {
     if(confirm("Confirm termination of user nexus link (Delete User)?")) {
-        db.collection('users').doc(id.toString()).delete().then(() => {
-            renderUsers(); // Manually refresh since it's a static get
-        }).catch(err => {
-            console.error("Delete Error:", err);
-            alert("Delete Protocol Failed.");
-        });
+        let users = JSON.parse(localStorage.getItem('zentrix_users')) || [];
+        users = users.filter(u => u.id !== id);
+        localStorage.setItem('zentrix_users', JSON.stringify(users));
+        renderUsers();
     }
 }
 
@@ -338,13 +298,10 @@ function renderAdminOrderPage() {
         return;
     }
 
-    db.collection('orders').doc(orderId).get().then(doc => {
-        if (!doc.exists) {
-            contentArea.innerHTML = '<p class="neon-text text-center">Error: Order record not found in the matrix.</p>';
-            return;
-        }
-        const ord = doc.data();
-        ord.id = ord.id || doc.id;
+    const orders = JSON.parse(localStorage.getItem('zentrix_orders')) || [];
+    const ord = orders.find(o => o.id === orderId);
+
+    if (!ord) {
         contentArea.innerHTML = '<p class="neon-text text-center">Error: Order record not found in the matrix.</p>';
         return;
     }
@@ -398,11 +355,6 @@ function renderAdminOrderPage() {
     }
 
     contentArea.innerHTML = itemsHtml;
-    
-    }).catch(err => {
-        console.error("Error fetching order:", err);
-        contentArea.innerHTML = '<p class="neon-text text-center">Matrix disconnection: Failed to load order details.</p>';
-    });
 }
 
 // Call renderer unconditionally (it will abort internally if elements aren't present)
@@ -410,15 +362,14 @@ renderAdminOrderPage();
 
 if (saveOrderStatusBtn) {
     saveOrderStatusBtn.addEventListener('click', () => {
-        db.collection('orders').doc(currentOrderId.value).update({
-            status: updateStatusSelect.value
-        }).then(() => {
+        let orders = JSON.parse(localStorage.getItem('zentrix_orders')) || [];
+        const idx = orders.findIndex(o => o.id === currentOrderId.value);
+        if (idx > -1) {
+            orders[idx].status = updateStatusSelect.value;
+            localStorage.setItem('zentrix_orders', JSON.stringify(orders));
             alert("Matrix Synchronized. Order Status Updated.");
             renderAdminOrderPage(); // Re-render to show updated status text natively
-        }).catch(err => {
-            console.error("Error updating status:", err);
-            alert("System Error: Could not sync status to cloud.");
-        });
+        }
     });
 }
 

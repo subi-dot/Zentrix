@@ -97,13 +97,13 @@ if (checkoutForm) {
             return;
         }
 
+        let orders = JSON.parse(localStorage.getItem('zentrix_orders')) || [];
         const nextOrderNum = Math.floor(1000 + Math.random() * 9000); 
         const newOrderId = "ORD-" + nextOrderNum;
         
         const newOrder = {
             id: newOrderId,
             date: new Date().toISOString().split('T')[0],
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
             customer: currentUser.email,
             address: checkoutAddress.value,
             total: totalAmount,
@@ -111,18 +111,16 @@ if (checkoutForm) {
             status: "Processing"
         };
         
-        db.collection('orders').doc(newOrderId).set(newOrder).then(() => {
-            // Clear Cart
-            cart = [];
-            localStorage.setItem('zentrix_cart', JSON.stringify(cart));
-            
-            // Show Success
-            successOrderId.innerText = newOrderId;
-            successModal.classList.add('active');
-            if (overlay) overlay.classList.add('active');
-        }).catch(err => {
-            console.error("Transmission Error:", err);
-            alert("Matrix Failure: Order could not be placed due to network disconnected.");
-        });
+        orders.unshift(newOrder); // Add to the top
+        localStorage.setItem('zentrix_orders', JSON.stringify(orders));
+
+        // Clear Cart
+        cart = [];
+        localStorage.setItem('zentrix_cart', JSON.stringify(cart));
+        
+        // Show Success
+        successOrderId.innerText = newOrderId;
+        successModal.classList.add('active');
+        if (overlay) overlay.classList.add('active');
     });
 }

@@ -28,16 +28,10 @@ const defaultProducts = [
     { id: 4, name: "Stealth Tag V2", category: "keychains", price: 18.00, image: "img/keychain_1.png", designer: "GhostDesign" }
 ];
 
-// Initialize Data if empty (Sync defaults to Firestore if products collection is empty)
-db.collection('products').get().then(snapshot => {
-    if (snapshot.empty) {
-        console.log("Initializing default products to Firestore...");
-        defaultProducts.forEach(prod => {
-            db.collection('products').doc(prod.id.toString()).set(prod);
-        });
-    }
-}).catch(err => console.error(err));
-
+// Initialize Data if empty
+if (!localStorage.getItem('zentrix_products')) {
+    localStorage.setItem('zentrix_products', JSON.stringify(defaultProducts));
+}
 if (!localStorage.getItem('zentrix_cart')) {
     localStorage.setItem('zentrix_cart', JSON.stringify([]));
 }
@@ -49,7 +43,11 @@ let currentUser = JSON.parse(sessionStorage.getItem('zentrix_curr_user')) || nul
 let pendingVerificationUser = null;
 let verificationCode = null;
 
-
+// Ensure users array exists
+if (!localStorage.getItem('zentrix_users')) {
+    localStorage.setItem('zentrix_users', JSON.stringify([
+    ]));
+}
 
 // DOM Elements
 const productGrid = document.getElementById('productGrid');
@@ -138,25 +136,12 @@ if(logoutBtn) {
     });
 }
 
-let unsubscribeUserOrders = null;
 function renderUserOrders() {
     if(!userOrdersContainer || !currentUser) return;
+    let orders = JSON.parse(localStorage.getItem('zentrix_orders')) || [];
+    let myOrders = orders.filter(o => o.customer === currentUser.email);
     
-    if (unsubscribeUserOrders) unsubscribeUserOrders();
-    
-    unsubscribeUserOrders = db.collection('orders')
-        .where('customer', '==', currentUser.email)
-        .onSnapshot((snapshot) => {
-            const myOrders = [];
-            snapshot.forEach(doc => {
-                const o = doc.data();
-                o.id = o.id || doc.id;
-                myOrders.push(o);
-            });
-            // Sort client side since we need composite index otherwise
-            myOrders.sort((a,b) => new Date(b.date) - new Date(a.date));
-            
-            userOrdersContainer.innerHTML = '';
+    userOrdersContainer.innerHTML = '';
     
     if (myOrders.length === 0) {
         userOrdersContainer.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">No transmissions detected.</p>';
@@ -201,7 +186,6 @@ function renderUserOrders() {
             <a href="orders.html" class="cyber-btn primary-btn" style="padding: 0.8rem 1.5rem; font-size: 0.9rem;">Access Full Order History</a>
         </div>
     `;
-    }, err => console.error("User orders stream error:", err));
 }
 
 // --- Signup Logic ---
@@ -216,12 +200,12 @@ if(signupForm) {
         const address = document.getElementById('signupAddress').value;
         const password = document.getElementById('signupPassword').value;
 
-        // Check unique email in Firestore
-        db.collection('users').where('email', '==', email).get().then((snapshot) => {
-            if (!snapshot.empty) {
-                alert("Error: Registration failed, identity (email) already exists in matrix.");
-                return;
-            }
+        // Check unique email
+        let users = JSON.parse(localStorage.getItem('zentrix_users')) || [];
+        if(users.some(u => u.email === email)) {
+            alert("Error: Registration failed, identity (email) already exists in matrix.");
+            return;
+        }
 
         // Generate 4 digit code
         verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
@@ -238,30 +222,12 @@ if(signupForm) {
             clearance: "Level 1 (User)"
         };
 
-        // Send actual email using EmailJS
-        const templateParams = {
-            to_name: firstName,
-            to_email: email,
-            message: verificationCode
-        };
+        // Simulate sending email
+        alert("SIMULATED SECURE EMAIL:\n\nTo: " + email + "\nSubject: Zentrix Account Verification\n\nYour 4-digit code is: " + verificationCode);
 
-        // Replace 'YOUR_SERVICE_ID' and 'YOUR_TEMPLATE_ID' with actual EmailJS IDs once account is set up
-        emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', templateParams)
-            .then(function(response) {
-                console.log('SUCCESS!', response.status, response.text);
-                // Switch to Verify Modal
-                loginModal.classList.remove('active');
-                verifyModal.classList.add('active');
-            }, function(error) {
-                console.log('FAILED...', error);
-                alert("Comm Line Failure: Could not dispatch verification code to " + email);
-            });
-        
-        // Close out the DB query scope
-        }).catch(err => {
-            console.error("Firestore error:", err);
-            alert("Matrix Error: User lookup failed.");
-        });
+        // Switch to Verify Modal
+        loginModal.classList.remove('active');
+        verifyModal.classList.add('active');
     });
 }
 
@@ -273,10 +239,9 @@ if(verifyForm) {
         const codeInput = document.getElementById('verifyCode').value;
         if(codeInput === verificationCode) {
             // Success
-            db.collection('users').doc(pendingVerificationUser.id).set(pendingVerificationUser)
-                .then(() => {
-                    console.log("User added to DB");
-                }).catch(err => console.error("Error adding user:", err));
+            let users = JSON.parse(localStorage.getItem('zentrix_users')) || [];
+            users.push(pendingVerificationUser);
+            localStorage.setItem('zentrix_users', JSON.stringify(users));
             
             alert("Identity verified. System Access Granted.");
             verifyModal.classList.remove('active');
@@ -301,9 +266,10 @@ if(loginForm) {
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
 
-        db.collection('users').where('email', '==', email).where('password', '==', password).get().then((snapshot) => {
-            if (!snapshot.empty) {
-                const user = snapshot.docs[0].data();
+        let users = JSON.parse(localStorage.getItem('zentrix_users')) || [];
+        const user = users.find(u => u.email === email && u.password === password);
+        
+        if (user) {
             if (user.status !== 'Active') alert("Account suspended or unverified.");
             else {
                 currentUser = user;
@@ -313,12 +279,9 @@ if(loginForm) {
                 overlay.classList.remove('active');
                 updateCheckoutUI();
             }
-            } else {
-                alert("Error: Invalid credentials.");
-            }
-        }).catch(err => {
-            console.error("Login DB error", err);
-        });
+        } else {
+            alert("Error: Invalid credentials.");
+        }
     });
 }
 
@@ -365,25 +328,17 @@ function renderProducts(filter = 'all') {
     if(!productGrid) return;
     productGrid.innerHTML = '';
     
-    // Fetch fresh from Firestore
-    let query = db.collection('products');
-    if (filter !== 'all') {
-        query = query.where('category', '==', filter);
-    }
-    
-    query.get().then((snapshot) => {
-        if (snapshot.empty) {
-            productGrid.innerHTML = `<p class="empty-cart-msg w-100" style="grid-column: 1/-1;">No blueprints found in the repository.</p>`;
-            return;
-        }
+    // Always fetch fresh from LocalStorage
+    products = JSON.parse(localStorage.getItem('zentrix_products')) || [];
 
-        const filtered = [];
-        snapshot.forEach(doc => {
-            filtered.push(doc.data());
-        });
-        
-        // Save to global products array for cart quick access
-        products = filtered;
+    const filtered = filter === 'all' 
+        ? products 
+        : products.filter(p => p.category === filter);
+
+    if (filtered.length === 0) {
+        productGrid.innerHTML = `<p class="empty-cart-msg w-100" style="grid-column: 1/-1;">No blueprints found in the repository.</p>`;
+        return;
+    }
 
     filtered.forEach(prod => {
         const card = document.createElement('div');
@@ -405,10 +360,6 @@ function renderProducts(filter = 'all') {
             </div>
         `;
         productGrid.appendChild(card);
-    });
-    }).catch(err => {
-        console.error("Error fetching products:", err);
-        productGrid.innerHTML = `<p class="neon-text text-center w-100" style="grid-column: 1/-1;">Matrix disconnection: Failed to load blueprints.</p>`;
     });
 }
 
@@ -645,16 +596,10 @@ function renderFullUserOrders() {
         return;
     }
 
-    db.collection('orders').where('customer', '==', currentUser.email).get().then(snapshot => {
-        const myOrders = [];
-        snapshot.forEach(doc => {
-            const o = doc.data();
-            o.id = o.id || doc.id;
-            myOrders.push(o);
-        });
-        myOrders.sort((a,b) => new Date(b.date) - new Date(a.date));
-        
-        listContainer.innerHTML = '';
+    let orders = JSON.parse(localStorage.getItem('zentrix_orders')) || [];
+    let myOrders = orders.filter(o => o.customer === currentUser.email);
+    
+    listContainer.innerHTML = '';
     
     if (myOrders.length === 0) {
         listContainer.innerHTML = '<p style="color: var(--text-secondary); text-align: center; font-style: italic; padding: 2rem;">No transmissions detected on the network.</p>';
@@ -716,24 +661,20 @@ function renderFullUserOrders() {
             </div>
         `;
     });
-    }).catch(err => console.error(err));
 }
 
 window.cancelOrder = function(id) {
     if(confirm("Are you certain you wish to abort this transmission? (Cancel Order)")) {
-        db.collection('orders').doc(id).get().then(doc => {
-            if (doc.exists && doc.data().status === 'Processing') {
-                return db.collection('orders').doc(id).update({ status: 'Cancelled' });
-            } else {
-                throw new Error("Order cannot be aborted at its current status.");
-            }
-        }).then(() => {
+        let orders = JSON.parse(localStorage.getItem('zentrix_orders')) || [];
+        const idx = orders.findIndex(o => o.id === id);
+        if(idx > -1 && orders[idx].status === 'Processing') {
+            orders[idx].status = 'Cancelled';
+            localStorage.setItem('zentrix_orders', JSON.stringify(orders));
             renderFullUserOrders();
-            // renderUserOrders works via snapshot automatically!
-            alert("Transmission Aborted.");
-        }).catch(err => {
-            alert("Error: " + err.message);
-        });
+            renderUserOrders(); // Update modal cache if open
+        } else {
+            alert("Error: Order cannot be aborted at its current status.");
+        }
     }
 }
 
